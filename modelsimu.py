@@ -1,6 +1,7 @@
 import igraph as ig
 import pandas as pd
 import copy
+import matplotlib as plt
 
 
 class Model:
@@ -31,20 +32,25 @@ class Model:
         self.log = list()
         for k in range(steps):
             sv, tv = self.run_once()
-            callb = self.callbacks.get(k, None)
-            if callb is not None:
-                callb(self)
-            callb = self.callbacks.get(-1, None)
-            if callb is not None:
-                callb(self)
+            callbacks = self.callbacks.get(k, None)
+            if not isinstance(callbacks, list):
+                callbacks = [callbacks]
+            for callb in callbacks:
+                if callb is not None:
+                    callb(self)
+            callbacks = self.callbacks.get(-1, None)
+            if not isinstance(callbacks, list):
+                callbacks = [callbacks]
+            for callb in callbacks:
+                if callb is not None:
+                    callb(self)
             self.log.append(sv + tv)
         for i, s in enumerate(self.states):
             s[1] = self.init_values[i]
 
         if pandas:
             return self.pandas_log()
-        else:
-            return self.log
+        return self
 
     def pandas_log(self):
         labels = [x[0] for x in self.states]
@@ -102,6 +108,8 @@ class Model:
 
 def plot_one(models, columns=None, ax=None, show_policies=False):
     legend = list()
+    if ax is None:
+        f, ax = plt.pyplot.subplots()
     for imod, model in enumerate(models):
         if model.name is not None:
             label_model = model.name
@@ -121,4 +129,5 @@ def plot_one(models, columns=None, ax=None, show_policies=False):
         for d in dates:
             if d > 0:
                 ax.axvline(x=d, color='black', linestyle="--")
+
     ax.legend(legend)
